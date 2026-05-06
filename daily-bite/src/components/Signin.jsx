@@ -1,6 +1,6 @@
 import axios from "axios";
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const BASE_URL = "https://bensontekes.alwaysdata.net";
 
@@ -8,70 +8,51 @@ const Signin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const login = async (e) => {
     e.preventDefault();
-    setError("");
-
-    if (!email || !password) {
-      setError("Please fill in all fields");
-      return;
-    }
 
     try {
-      setLoading(true);
-
-      const formdata = new FormData();
-      formdata.append("email", email);
-      formdata.append("password", password);
-
-      const res = await axios.post(`${BASE_URL}/api/signin`, formdata);
-
-      if (!res.data || res.data.message !== "Login successful") {
-        setError("Invalid email or password");
-        return;
-      }
+      const res = await axios.post(`${BASE_URL}/api/signin`, {
+        email,
+        password,
+      });
 
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
+      alert("Login successful ✅");
       navigate("/");
 
     } catch (err) {
-      console.log(err);
-      setError("Server error. Try again later.");
-    } finally {
-      setLoading(false);
+      alert(err.response?.data?.message || "Login failed ❌");
     }
   };
 
   return (
     <div style={styles.page}>
 
+      {/* 🌟 glowing rings */}
+      <div style={styles.glow1}></div>
+      <div style={styles.glow2}></div>
+
+      {/* 🔙 BACK BUTTON (TOP RIGHT AREA NOT CORNER) */}
+      <button
+        style={styles.backBtn}
+        onClick={() => navigate("/")}
+      >
+        ⬅ Home
+      </button>
+
+      {/* CARD */}
       <div style={styles.card}>
-
-        {/* 🔙 BACK BUTTON */}
-        <button
-          style={styles.backBtn}
-          onClick={() => navigate("/")}
-        >
-          ⬅ Back to Home
-        </button>
-
         <h2 style={styles.title}>🍰 Daily Bite Login</h2>
-        <p style={styles.subtitle}>Welcome back, sign in to continue</p>
+        <p style={styles.subtitle}>Welcome back</p>
 
-        {error && <div style={styles.error}>{error}</div>}
-
-        <form onSubmit={handleSubmit}>
-
+        <form onSubmit={login}>
           <input
             style={styles.input}
-            placeholder="Email address"
-            value={email}
+            placeholder="Email"
             onChange={(e) => setEmail(e.target.value)}
           />
 
@@ -79,23 +60,18 @@ const Signin = () => {
             style={styles.input}
             type="password"
             placeholder="Password"
-            value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          <button style={styles.button} disabled={loading}>
-            {loading ? "Signing in..." : "Sign In 🚀"}
-          </button>
-
+          <button style={styles.button}>Sign In</button>
         </form>
 
-        <p style={styles.footerText}>
-          Don’t have an account?{" "}
-          <Link style={styles.link} to="/signup">
-            Create account
-          </Link>
+        <p style={styles.linkText}>
+          No account?{" "}
+          <span style={styles.link} onClick={() => navigate("/signup")}>
+            Sign up
+          </span>
         </p>
-
       </div>
     </div>
   );
@@ -107,87 +83,79 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    background: "radial-gradient(circle, #1a1a1a, #000)",
+    background: "#0b0b0b",
+    position: "relative",
+    overflow: "hidden",
   },
 
   card: {
-    width: "100%",
-    maxWidth: "380px",
-    padding: "30px",
-    borderRadius: "15px",
+    width: "350px",
+    padding: "25px",
     background: "#111",
     border: "1px solid #d4af37",
-    boxShadow: "0 0 25px rgba(212,175,55,0.2)",
+    borderRadius: "12px",
     textAlign: "center",
+    zIndex: 2,
+    boxShadow: "0 0 25px rgba(212,175,55,0.25)",
   },
 
-  /* 🔙 BACK BUTTON */
-  backBtn: {
-    width: "100%",
-    padding: "10px",
-    marginBottom: "15px",
-    background: "transparent",
-    border: "1px solid #d4af37",
-    color: "#d4af37",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontWeight: "bold",
-    transition: "0.3s",
-  },
-
-  title: {
-    color: "#d4af37",
-    marginBottom: "5px",
-  },
-
-  subtitle: {
-    color: "#aaa",
-    fontSize: "13px",
-    marginBottom: "20px",
-  },
+  title: { color: "#d4af37" },
+  subtitle: { color: "#aaa", fontSize: "13px", marginBottom: "15px" },
 
   input: {
     width: "100%",
-    padding: "12px",
-    marginBottom: "12px",
-    borderRadius: "8px",
-    border: "1px solid #d4af37",
+    padding: "10px",
+    marginBottom: "10px",
     background: "#000",
+    border: "1px solid #d4af37",
     color: "#fff",
-    outline: "none",
+    borderRadius: "6px",
   },
 
   button: {
     width: "100%",
-    padding: "12px",
-    borderRadius: "8px",
+    padding: "10px",
+    background: "#d4af37",
     border: "none",
-    background: "linear-gradient(90deg, #d4af37, #ffcc00)",
-    color: "#000",
     fontWeight: "bold",
     cursor: "pointer",
-    marginTop: "5px",
   },
 
-  error: {
-    background: "#2a0000",
-    color: "#ff6b6b",
-    padding: "8px",
-    borderRadius: "6px",
-    marginBottom: "10px",
-    fontSize: "13px",
-  },
+  linkText: { marginTop: "10px", color: "#aaa", fontSize: "13px" },
+  link: { color: "#d4af37", cursor: "pointer" },
 
-  footerText: {
-    marginTop: "15px",
-    color: "#aaa",
-    fontSize: "13px",
-  },
-
-  link: {
+  backBtn: {
+    position: "absolute",
+    top: "20px",
+    right: "40px",
+    padding: "8px 15px",
+    border: "1px solid #d4af37",
+    background: "transparent",
     color: "#d4af37",
-    textDecoration: "none",
-    fontWeight: "bold",
+    cursor: "pointer",
+    borderRadius: "8px",
+    zIndex: 10,
+    transition: "0.3s",
+  },
+
+  glow1: {
+    position: "absolute",
+    width: "420px",
+    height: "420px",
+    background: "radial-gradient(circle, rgba(212,175,55,0.25), transparent 60%)",
+    filter: "blur(50px)",
+    top: "-120px",
+    left: "-120px",
+  },
+
+  glow2: {
+    position: "absolute",
+    width: "450px",
+    height: "450px",
+    background: "radial-gradient(circle, rgba(255,204,0,0.15), transparent 60%)",
+    filter: "blur(60px)",
+    bottom: "-120px",
+    right: "-150px",
   },
 };
 

@@ -6,13 +6,15 @@ import "bootstrap/dist/css/bootstrap.min.css";
 // COMPONENTS
 // =========================
 import Navbar from './components/Header';
-import Footer from './components/Footer';   // ✅ ADD THIS
+import Footer from './components/Footer';
+
 import Getproducts from './components/Getproducts';
 import Addproducts from './components/Addproducts';
 import Signup from './components/Signup';
 import Signin from './components/Signin';
 import Makepayments from './components/Makepayments';
 import Adminlogin from './components/Adminlogin';
+import AdminDashboard from './components/AdminDashboard'; // ✅ ADDED
 import Notfound from './components/Notfound';
 
 function App() {
@@ -25,29 +27,43 @@ function App() {
       {/* ROUTES */}
       <Routes>
 
-        {/* HOME */}
+        {/* =========================
+            PUBLIC PAGES
+        ========================= */}
         <Route path="/" element={<Getproducts />} />
         <Route path="/getproducts" element={<Getproducts />} />
 
-        {/* AUTH */}
         <Route path="/signup" element={<Signup />} />
         <Route path="/signin" element={<Signin />} />
 
-        {/* ADMIN */}
+        {/* =========================
+            ADMIN AUTH
+        ========================= */}
         <Route path="/adminlogin" element={<Adminlogin />} />
 
-        {/* PRODUCTS */}
+        {/* =========================
+            ADMIN DASHBOARD (NEW 🔥)
+        ========================= */}
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+
+        {/* =========================
+            PRODUCT MANAGEMENT
+        ========================= */}
         <Route path="/addproducts" element={<Addproducts />} />
 
-        {/* PAYMENT */}
+        {/* =========================
+            PAYMENTS
+        ========================= */}
         <Route path="/makepayment" element={<Makepayments />} />
 
-        {/* 404 */}
+        {/* =========================
+            404
+        ========================= */}
         <Route path="*" element={<Notfound />} />
 
       </Routes>
 
-      {/* GLOBAL FOOTER (IMPORTANT ✅) */}
+      {/* GLOBAL FOOTER */}
       <Footer />
 
     </Router>

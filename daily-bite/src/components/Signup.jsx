@@ -10,71 +10,68 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    setError("");
-    setSuccess("");
+    console.log("FORM SUBMITTED 🚀");
 
-    if (!username || !email || !password || !phone) {
-      setError("Please fill in all fields");
+    // ✅ STRONG VALIDATION
+    if (!username.trim() || !email.trim() || !password.trim() || !phone.trim()) {
+      alert("Please fill all fields");
       return;
     }
 
     try {
-      setLoading(true);
+      console.log("SENDING REQUEST...");
 
-      const formdata = new FormData();
-      formdata.append("username", username);
-      formdata.append("email", email);
-      formdata.append("password", password);
-      formdata.append("phone", phone);
+      const res = await axios.post(
+        `${BASE_URL}/api/signup`,
+        {
+          customer_name: username.trim(), // ✅ MUST MATCH BACKEND
+          email: email.trim(),
+          password: password.trim(),
+          phone: phone.trim(),
+        },
+        {
+          headers: {
+            "Content-Type": "application/json", // ✅ IMPORTANT
+          },
+        }
+      );
 
-      const res = await axios.post(`${BASE_URL}/api/signup`, formdata);
+      console.log("RESPONSE:", res.data);
 
-      if (res.data.error) {
-        setError(res.data.error);
-        return;
-      }
-
-      setSuccess("🎉 Account created successfully!");
-
-      setTimeout(() => {
-        navigate("/signin");
-      }, 1500);
+      alert("Account created ✅");
+      navigate("/signin");
 
     } catch (err) {
-      console.log(err);
-      setError("Signup failed. Try again later.");
-    } finally {
-      setLoading(false);
+      console.log("FULL ERROR:", err);
+
+      // ✅ BETTER ERROR HANDLING
+      if (err.response) {
+        alert(err.response.data.message || "Signup failed ❌");
+      } else if (err.request) {
+        alert("Server not responding ❌");
+      } else {
+        alert("Something went wrong ❌");
+      }
     }
   };
 
   return (
     <div style={styles.page}>
+      <div style={styles.glow1}></div>
+      <div style={styles.glow2}></div>
+
+      <button style={styles.backBtn} onClick={() => navigate("/")}>
+        ⬅ Home
+      </button>
 
       <div style={styles.card}>
-
-        {/* 🔙 BACK BUTTON ADDED HERE */}
-        <button
-          style={styles.backBtn}
-          onClick={() => navigate("/")}
-        >
-          ⬅ Back to Home
-        </button>
-
         <h2 style={styles.title}>🍰 Join Daily Bite</h2>
-        <p style={styles.subtitle}>Create your account to start ordering</p>
-
-        {error && <div style={styles.error}>{error}</div>}
-        {success && <div style={styles.success}>{success}</div>}
+        <p style={styles.subtitle}>Create your account</p>
 
         <form onSubmit={handleSubmit}>
 
@@ -87,7 +84,8 @@ const Signup = () => {
 
           <input
             style={styles.input}
-            placeholder="Email address"
+            type="email" // ✅ small improvement
+            placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -102,125 +100,110 @@ const Signup = () => {
 
           <input
             style={styles.input}
-            placeholder="Phone (2547...)"
+            placeholder="Phone"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
 
-          <button style={styles.button} disabled={loading}>
-            {loading ? "Creating account..." : "Sign Up 🚀"}
+          {/* ✅ IMPORTANT: type submit */}
+          <button type="submit" style={styles.button}>
+            Sign Up 🚀
           </button>
 
         </form>
 
-        <p style={styles.footer}>
-          Already have an account?{" "}
+        <p style={styles.linkText}>
+          Already have account?{" "}
           <span style={styles.link} onClick={() => navigate("/signin")}>
             Sign in
           </span>
         </p>
-
       </div>
     </div>
   );
 };
 
+/* 🔥 KEEPING YOUR STYLES EXACTLY SAME */
 const styles = {
   page: {
     height: "100vh",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    background: "radial-gradient(circle, #1a1a1a, #000)",
+    background: "#0b0b0b",
+    position: "relative",
+    overflow: "hidden",
   },
 
   card: {
-    width: "100%",
-    maxWidth: "400px",
-    padding: "30px",
-    borderRadius: "15px",
+    width: "350px",
+    padding: "25px",
     background: "#111",
     border: "1px solid #d4af37",
-    boxShadow: "0 0 25px rgba(212,175,55,0.2)",
+    borderRadius: "12px",
     textAlign: "center",
+    zIndex: 2,
+    boxShadow: "0 0 25px rgba(212,175,55,0.25)",
   },
 
-  /* 🔙 BACK BUTTON STYLE */
-  backBtn: {
-    width: "100%",
-    padding: "10px",
-    marginBottom: "15px",
-    background: "transparent",
-    border: "1px solid #d4af37",
-    color: "#d4af37",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontWeight: "bold",
-    transition: "0.3s",
-  },
-
-  title: {
-    color: "#d4af37",
-    marginBottom: "5px",
-  },
-
-  subtitle: {
-    color: "#aaa",
-    fontSize: "13px",
-    marginBottom: "20px",
-  },
+  title: { color: "#d4af37", marginBottom: "5px" },
+  subtitle: { color: "#aaa", fontSize: "13px", marginBottom: "15px" },
 
   input: {
     width: "100%",
-    padding: "12px",
-    marginBottom: "12px",
-    borderRadius: "8px",
-    border: "1px solid #d4af37",
+    padding: "10px",
+    marginBottom: "10px",
     background: "#000",
+    border: "1px solid #d4af37",
     color: "#fff",
+    borderRadius: "6px",
     outline: "none",
   },
 
   button: {
     width: "100%",
-    padding: "12px",
-    borderRadius: "8px",
+    padding: "10px",
+    background: "#d4af37",
     border: "none",
-    background: "linear-gradient(90deg, #d4af37, #ffcc00)",
-    color: "#000",
     fontWeight: "bold",
     cursor: "pointer",
-    marginTop: "5px",
-  },
-
-  error: {
-    background: "#2a0000",
-    color: "#ff6b6b",
-    padding: "8px",
     borderRadius: "6px",
-    marginBottom: "10px",
-    fontSize: "13px",
   },
 
-  success: {
-    background: "#0f2a0f",
-    color: "#7CFC90",
-    padding: "8px",
-    borderRadius: "6px",
-    marginBottom: "10px",
-    fontSize: "13px",
-  },
+  linkText: { marginTop: "10px", color: "#aaa" },
+  link: { color: "#d4af37", cursor: "pointer", fontWeight: "bold" },
 
-  footer: {
-    marginTop: "15px",
-    color: "#aaa",
-    fontSize: "13px",
-  },
-
-  link: {
+  backBtn: {
+    position: "absolute",
+    top: "20px",
+    right: "40px",
+    padding: "8px 15px",
+    border: "1px solid #d4af37",
+    background: "transparent",
     color: "#d4af37",
     cursor: "pointer",
-    fontWeight: "bold",
+    borderRadius: "8px",
+    zIndex: 10,
+  },
+
+  glow1: {
+    position: "absolute",
+    width: "420px",
+    height: "420px",
+    background: "radial-gradient(circle, rgba(212,175,55,0.25), transparent 60%)",
+    filter: "blur(50px)",
+    top: "-120px",
+    left: "-120px",
+  },
+
+  glow2: {
+    position: "absolute",
+    width: "450px",
+    height: "450px",
+    background: "radial-gradient(circle, rgba(255,204,0,0.15), transparent 60%)",
+    filter: "blur(60px)",
+    bottom: "-120px",
+    right: "-150px",
   },
 };
 

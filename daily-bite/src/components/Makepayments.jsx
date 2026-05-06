@@ -8,26 +8,30 @@ const Makepayments = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
 
-  const product = state || null;
+  const cart = state?.cart;
+  const product = state?.product_name ? state : null;
 
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
+  const [method, setMethod] = useState("mpesa");
+
+  const total =
+    cart && Array.isArray(cart) && cart.length > 0
+      ? cart.reduce((sum, item) => {
+          const price = Number(item.price || 0);
+          const qty = Number(item.qty || 1);
+          return sum + price * qty;
+        }, 0)
+      : Number(product?.product_cost || 0);
 
   // =========================
-  // PAY FUNCTION (M-PESA STK PUSH)
+  // PAYMENT FUNCTION
   // =========================
   const pay = async (e) => {
     e.preventDefault();
 
-    // safety checks
-    if (!product) {
-      alert("No product selected");
-      navigate("/");
-      return;
-    }
-
-    if (!phone.trim()) {
-      alert("Please enter your phone number");
+    if (method === "mpesa" && (!phone || phone.trim().length < 9)) {
+      alert("Enter valid phone number");
       return;
     }
 
@@ -36,30 +40,26 @@ const Makepayments = () => {
 
       const formdata = new FormData();
       formdata.append("phone", phone);
-      formdata.append("amount", product.product_cost);
+      formdata.append("amount", total);
+      formdata.append("method", method);
 
       await axios.post(`${BASE_URL}/api/mpesa_payment`, formdata);
 
-      alert("📱 STK Push sent! Check your phone.");
+      alert(`Payment initiated via ${method.toUpperCase()} ✅`);
 
       setPhone("");
     } catch (err) {
       console.log(err);
-      alert("Payment failed ❌ Try again");
+      alert("Payment failed ❌");
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================
-  // EMPTY PRODUCT GUARD
-  // =========================
-  if (!product) {
+  if (!cart && !product) {
     return (
       <div style={styles.empty}>
-        <h2 style={{ color: "#d4af37" }}>No product selected</h2>
-        <p>Select a product first to continue payment</p>
-
+        <h2 style={{ color: "#d4af37" }}>No order selected</h2>
         <button style={styles.btn} onClick={() => navigate("/")}>
           Go Back Home
         </button>
@@ -69,122 +69,202 @@ const Makepayments = () => {
 
   return (
     <div style={styles.page}>
+      <button style={styles.backBtn} onClick={() => navigate("/")}>
+        ⬅ Back Home
+      </button>
 
-      {/* ================= PAYMENT CARD ================= */}
       <div style={styles.card}>
+        <h2 style={styles.title}>Checkout</h2>
 
-        <h2 style={styles.title}>
-          {product.product_name}
-        </h2>
+        {/* ================= PRODUCT ================= */}
+        {!cart ? (
+          <>
+            <img
+              src={`${BASE_URL}/static/images/${product?.product_photo}`}
+              style={styles.image}
+              alt=""
+            />
+            <h3 style={styles.price}>
+              Ksh {Number(product?.product_cost || 0).toFixed(2)}
+            </h3>
+          </>
+        ) : (
+          <div style={styles.cartBox}>
+            {cart.map((item, i) => (
+              <div key={i} style={styles.cartItem}>
+                <p>{item.name}</p>
+                <p style={styles.gold}>
+                  Ksh {item.price * item.qty}
+                </p>
+              </div>
+            ))}
 
-        <img
-          src={`${BASE_URL}/static/images/${product.product_photo}`}
-          alt={product.product_name}
-          style={styles.image}
-          onError={(e) =>
-            (e.target.src =
-              "https://via.placeholder.com/300x200?text=No+Image")
-          }
-        />
+            <h3 style={styles.total}>Total: Ksh {total}</h3>
+          </div>
+        )}
 
-        <p style={styles.desc}>
-          {product.product_description}
-        </p>
+        {/* ================= PAYMENT OPTIONS ================= */}
+        <h3 style={styles.sectionTitle}>Select Payment Method</h3>
 
-        <h3 style={styles.price}>
-          Ksh {Number(product.product_cost || 0).toFixed(2)}
-        </h3>
+        <div style={styles.methodBox}>
+          <button
+            onClick={() => setMethod("mpesa")}
+            style={{
+              ...styles.methodBtn,
+              border: method === "mpesa" ? "2px solid #d4af37" : "1px solid #333",
+            }}
+          >
+            📱 M-Pesa
+          </button>
 
-        {/* ================= PAYMENT FORM ================= */}
-        <form onSubmit={pay}>
+          <button
+            onClick={() => setMethod("cash")}
+            style={{
+              ...styles.methodBtn,
+              border: method === "cash" ? "2px solid #d4af37" : "1px solid #333",
+            }}
+          >
+            💵 Cash
+          </button>
 
+          <button
+            onClick={() => setMethod("card")}
+            style={{
+              ...styles.methodBtn,
+              border: method === "card" ? "2px solid #d4af37" : "1px solid #333",
+            }}
+          >
+            💳 Debit Card
+          </button>
+
+          <button
+            onClick={() => setMethod("delivery")}
+            style={{
+              ...styles.methodBtn,
+              border: method === "delivery" ? "2px solid #d4af37" : "1px solid #333",
+            }}
+          >
+            🚚 Pay on Delivery
+          </button>
+        </div>
+
+        {/* ================= PHONE ONLY FOR MPESA ================= */}
+        {method === "mpesa" && (
           <input
             style={styles.input}
-            placeholder="Enter phone number (e.g 2547...)"
+            placeholder="Enter phone number (2547...)"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
+        )}
 
-          <button style={styles.payBtn} disabled={loading}>
-            {loading ? "Processing..." : "Pay with M-Pesa 💳"}
-          </button>
-
-        </form>
-
+        {/* ================= PAY BUTTON ================= */}
+        <button style={styles.payBtn} onClick={pay} disabled={loading}>
+          {loading ? "Processing..." : `Pay Ksh ${total}`}
+        </button>
       </div>
-
     </div>
   );
 };
 
 // =========================
-// 🎨 PREMIUM GOLD / BLACK UI
+// STYLES
 // =========================
 const styles = {
   page: {
     minHeight: "100vh",
     background: "#0b0b0b",
     display: "flex",
-    justifyContent: "center",
+    flexDirection: "column",
     alignItems: "center",
     padding: "20px",
   },
 
+  backBtn: {
+    alignSelf: "flex-start",
+    marginBottom: "10px",
+    background: "#d4af37",
+    border: "none",
+    padding: "8px 12px",
+    borderRadius: "6px",
+    fontWeight: "bold",
+    cursor: "pointer",
+  },
+
   card: {
     width: "100%",
-    maxWidth: "420px",
+    maxWidth: "450px",
     background: "#111",
     border: "1px solid #d4af37",
     borderRadius: "15px",
     padding: "20px",
     textAlign: "center",
-    boxShadow: "0 0 25px rgba(212,175,55,0.25)",
   },
 
-  title: {
-    color: "#d4af37",
-    marginBottom: "10px",
-  },
+  title: { color: "#d4af37" },
 
   image: {
     width: "100%",
     height: "200px",
     objectFit: "cover",
     borderRadius: "10px",
-    marginBottom: "10px",
   },
 
-  desc: {
-    color: "#aaa",
-    fontSize: "13px",
-    marginBottom: "10px",
+  price: { color: "#d4af37" },
+
+  sectionTitle: {
+    color: "#d4af37",
+    marginTop: "15px",
   },
 
-  price: {
+  methodBox: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, 1fr)",
+    gap: "10px",
+    marginTop: "10px",
+  },
+
+  methodBtn: {
+    padding: "10px",
+    background: "#000",
     color: "#fff",
-    marginBottom: "15px",
+    borderRadius: "8px",
+    cursor: "pointer",
   },
 
   input: {
     width: "100%",
     padding: "10px",
-    marginBottom: "10px",
+    marginTop: "10px",
     borderRadius: "8px",
     border: "1px solid #d4af37",
     background: "#000",
     color: "#fff",
-    outline: "none",
   },
 
   payBtn: {
     width: "100%",
+    marginTop: "15px",
     padding: "12px",
     background: "#d4af37",
     border: "none",
     fontWeight: "bold",
-    cursor: "pointer",
     borderRadius: "8px",
+    cursor: "pointer",
   },
+
+  cartBox: { textAlign: "left" },
+
+  cartItem: {
+    display: "flex",
+    justifyContent: "space-between",
+    borderBottom: "1px solid #333",
+    padding: "5px 0",
+  },
+
+  gold: { color: "#d4af37" },
+
+  total: { color: "#d4af37", marginTop: "10px" },
 
   btn: {
     padding: "10px 15px",
@@ -195,15 +275,12 @@ const styles = {
   },
 
   empty: {
-    height: "100vh",
+    minHeight: "100vh",
+    background: "#0b0b0b",
     display: "flex",
     flexDirection: "column",
-    gap: "10px",
     justifyContent: "center",
     alignItems: "center",
-    background: "#0b0b0b",
-    color: "#fff",
-    textAlign: "center",
   },
 };
 
