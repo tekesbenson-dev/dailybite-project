@@ -4,6 +4,7 @@ import axios from "axios";
 const BASE_URL = "https://bensontekes.alwaysdata.net";
 
 const Addproducts = ({ fetchProducts }) => {
+
   // =========================
   // FORM STATE
   // =========================
@@ -18,10 +19,13 @@ const Addproducts = ({ fetchProducts }) => {
   // =========================
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Check if user is admin (simple frontend protection)
+  // =========================
+  // CHECK ADMIN
+  // =========================
   useEffect(() => {
-    const adminFlag = localStorage.getItem("admin");
-    if (adminFlag === "true") {
+    const userData = JSON.parse(localStorage.getItem("user"));
+
+    if (userData?.role === "admin") {
       setIsAdmin(true);
     }
   }, []);
@@ -32,13 +36,13 @@ const Addproducts = ({ fetchProducts }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate inputs
+    // VALIDATION
     if (!name || !desc || !product_cost || !photo) {
       alert("Please fill all fields");
       return;
     }
 
-    // Ensure price is valid number
+    // VALIDATE COST
     const cleanCost = parseFloat(product_cost);
 
     if (isNaN(cleanCost)) {
@@ -46,17 +50,18 @@ const Addproducts = ({ fetchProducts }) => {
       return;
     }
 
-    // Prepare form data for backend (important for file upload)
+    // FORM DATA
     const formdata = new FormData();
+
     formdata.append("product_name", name.trim());
     formdata.append("product_description", desc.trim());
     formdata.append("product_cost", cleanCost);
     formdata.append("product_photo", photo);
 
     try {
+
       setLoading(true);
 
-      // Send request to backend
       const res = await axios.post(
         `${BASE_URL}/api/add_product`,
         formdata
@@ -64,25 +69,32 @@ const Addproducts = ({ fetchProducts }) => {
 
       alert(res.data.message || "Product added successfully!");
 
-      // Reset form after success
+      // RESET FORM
       setName("");
       setDesc("");
       setProductCost("");
       setPhoto(null);
 
-      // Refresh product list in parent component
-      if (fetchProducts) fetchProducts();
+      // REFRESH PRODUCTS
+      if (fetchProducts) {
+        fetchProducts();
+      }
 
     } catch (err) {
+
       console.log(err);
+
       alert("Failed to add product");
+
     } finally {
+
       setLoading(false);
+
     }
   };
 
   // =========================
-  // ADMIN PROTECTION UI
+  // BLOCK NON ADMIN
   // =========================
   if (!isAdmin) {
     return (
@@ -97,105 +109,133 @@ const Addproducts = ({ fetchProducts }) => {
   // =========================
   return (
     <div style={styles.page}>
+
       <div style={styles.card}>
-        <h2 style={styles.title}>🍔 Add Product</h2>
+
+        <h2 style={styles.title}>
+          🍔 Add Product
+        </h2>
 
         <form onSubmit={handleSubmit}>
+
           {/* PRODUCT NAME */}
           <input
-            style={styles.input}
+            type="text"
             placeholder="Product Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            style={styles.input}
           />
 
           {/* DESCRIPTION */}
-          <input
-            style={styles.input}
-            placeholder="Description"
+          <textarea
+            placeholder="Product Description"
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
+            style={styles.textarea}
           />
 
-          {/* COST */}
+          {/* PRODUCT COST */}
           <input
             type="number"
-            style={styles.input}
-            placeholder="Product Cost (Ksh)"
+            placeholder="Product Cost"
             value={product_cost}
             onChange={(e) => setProductCost(e.target.value)}
+            style={styles.input}
           />
 
-          {/* IMAGE UPLOAD */}
+          {/* PRODUCT PHOTO */}
           <input
             type="file"
-            style={styles.input}
             onChange={(e) => setPhoto(e.target.files[0])}
+            style={styles.input}
           />
 
-          {/* SUBMIT BUTTON */}
+          {/* BUTTON */}
           <button
             type="submit"
             disabled={loading}
             style={styles.button}
           >
-            {loading ? "Adding..." : "➕ Add Product"}
+            {loading ? "Adding Product..." : "➕ Add Product"}
           </button>
+
         </form>
+
       </div>
+
     </div>
   );
 };
 
 // =========================
-// 🎨 STYLES (CLEAN DARK GOLD THEME)
+// STYLES
 // =========================
 const styles = {
+
   page: {
     minHeight: "100vh",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    background: "linear-gradient(135deg,#000,#1a1a1a,#2c2c2c)",
-    padding: "20px"
+    background: "linear-gradient(135deg,#000,#111,#1a1a1a)",
+    padding: "20px",
   },
 
   card: {
     width: "100%",
     maxWidth: "500px",
     background: "#111",
-    padding: "25px",
     borderRadius: "15px",
+    padding: "25px",
     border: "2px solid #d4af37",
-    boxShadow: "0 0 20px rgba(212,175,55,0.3)"
+    boxShadow: "0 0 20px rgba(212,175,55,0.3)",
   },
 
   title: {
     textAlign: "center",
     color: "#d4af37",
-    marginBottom: "20px"
+    marginBottom: "20px",
   },
 
   input: {
     width: "100%",
     padding: "12px",
-    marginBottom: "10px",
+    marginBottom: "15px",
     borderRadius: "8px",
     border: "1px solid #d4af37",
     background: "#000",
     color: "#fff",
-    outline: "none"
+    outline: "none",
+    fontSize: "15px",
+  },
+
+  textarea: {
+    width: "100%",
+    minHeight: "100px",
+    padding: "12px",
+    marginBottom: "15px",
+    borderRadius: "8px",
+    border: "1px solid #d4af37",
+    background: "#000",
+    color: "#fff",
+    outline: "none",
+    resize: "none",
+    fontSize: "15px",
   },
 
   button: {
     width: "100%",
-    padding: "12px",
-    borderRadius: "8px",
+    padding: "14px",
     border: "none",
+    borderRadius: "8px",
     background: "linear-gradient(90deg,#d4af37,#ffcc00)",
     color: "#000",
     fontWeight: "bold",
-    cursor: "pointer"
+    fontSize: "16px",
+    cursor: "pointer",
+    transition: "0.3s",
+    boxShadow: "0 0 15px rgba(212,175,55,0.5)",
   },
 
   blocked: {
@@ -203,10 +243,11 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    fontSize: "22px",
+    background: "#000",
     color: "#d4af37",
-    background: "#000"
-  }
+    fontSize: "24px",
+    fontWeight: "bold",
+  },
 };
 
 export default Addproducts;

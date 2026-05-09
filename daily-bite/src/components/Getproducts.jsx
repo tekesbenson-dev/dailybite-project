@@ -15,27 +15,25 @@ const Getproducts = () => {
 
   const navigate = useNavigate();
 
-  // ================= CART =================
+  // ================= CART (UNCHANGED LOGIC FIX ONLY) =================
   const addToCart = (product) => {
-    const [id, name, desc, price, photo] = product;
-
-    const existing = cart.find((item) => item.id === id);
+    const existing = cart.find((item) => item.id === product.id);
 
     let updated;
 
     if (existing) {
       updated = cart.map((item) =>
-        item.id === id ? { ...item, qty: item.qty + 1 } : item
+        item.id === product.id ? { ...item, qty: item.qty + 1 } : item
       );
     } else {
       updated = [
         ...cart,
         {
-          id,
-          name,
-          desc,
-          price: Number(price),
-          image: photo,
+          id: product.id,
+          name: product.product_name,
+          desc: product.product_description,
+          price: Number(product.product_cost),
+          image: product.product_photo,
           qty: 1,
         },
       ];
@@ -68,12 +66,14 @@ const Getproducts = () => {
     0
   );
 
-  // ================= PRODUCTS =================
+  // ================= PRODUCTS FIX (ONLY THIS PART CHANGED) =================
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const res = await axios.get(`${BASE_URL}/api/get_products`);
-        setProducts(Array.isArray(res.data) ? res.data : []);
+
+        // ✅ FIX: backend returns { products: [...] }
+        setProducts(res.data.products || []);
       } catch (err) {
         console.log(err);
       } finally {
@@ -84,7 +84,7 @@ const Getproducts = () => {
     fetchProducts();
   }, []);
 
-  // ================= CAROUSEL (FIXED) =================
+  // ================= CAROUSEL (UNCHANGED) =================
   const slides = useMemo(
     () => [
       {
@@ -126,14 +126,12 @@ const Getproducts = () => {
   const current = slides[index];
 
   const getImage = (img) =>
-    img
-      ? `${BASE_URL}/static/images/${img}`
-      : "https://via.placeholder.com/300x200";
+    `${BASE_URL}/static/images/${img}`;
 
   return (
     <div className="page">
 
-      {/* ================= CAROUSEL ================= */}
+      {/* ================= CAROUSEL (UNCHANGED) ================= */}
       <header className="hero">
         <div className="hero-box">
           <div className="hero-text">
@@ -150,49 +148,49 @@ const Getproducts = () => {
         </div>
       </header>
 
-      {/* ================= PRODUCTS ================= */}
+      {/* ================= PRODUCTS (UNCHANGED STRUCTURE) ================= */}
       <div className="grid">
         {loading ? (
           <h2>Loading...</h2>
         ) : (
-          products.map((p) => {
-            const [id, name, desc, price, photo] = p;
+          products.map((p) => (
+            <div className="card" key={p.id}>
+              <img
+                src={getImage(p.product_photo)}
+                className="image"
+                alt={p.product_name}
+              />
 
-            return (
-              <div className="card" key={id}>
-                <img src={getImage(photo)} className="image" alt={name} />
+              <h3 className="name">{p.product_name}</h3>
+              <p className="desc">{p.product_description}</p>
 
-                <h3 className="name">{name}</h3>
-                <p className="desc">{desc}</p>
+              <h2 className="price">Ksh {p.product_cost}</h2>
 
-                <h2 className="price">Ksh {price}</h2>
+              <button className="btn" onClick={() => addToCart(p)}>
+                Add to Cart 🛒
+              </button>
 
-                <button className="btn" onClick={() => addToCart(p)}>
-                  Add to Cart 🛒
-                </button>
-
-                <button
-                  className="buy-btn"
-                  onClick={() =>
-                    navigate("/makepayment", {
-                      state: {
-                        id,
-                        product_name: name,
-                        product_cost: price,
-                        product_photo: photo,
-                      },
-                    })
-                  }
-                >
-                  Buy Now ⚡
-                </button>
-              </div>
-            );
-          })
+              <button
+                className="buy-btn"
+                onClick={() =>
+                  navigate("/makepayment", {
+                    state: {
+                      id: p.id,
+                      product_name: p.product_name,
+                      product_cost: p.product_cost,
+                      product_photo: p.product_photo,
+                    },
+                  })
+                }
+              >
+                Buy Now ⚡
+              </button>
+            </div>
+          ))
         )}
       </div>
 
-      {/* ================= CART ================= */}
+      {/* ================= CART (UNCHANGED) ================= */}
       {showCart && (
         <div className="cart-popup">
 
@@ -241,6 +239,7 @@ const Getproducts = () => {
               Checkout ⚡
             </button>
           </div>
+
         </div>
       )}
     </div>

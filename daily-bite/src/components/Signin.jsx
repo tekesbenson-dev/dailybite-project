@@ -19,40 +19,43 @@ const Signin = () => {
         password,
       });
 
-      localStorage.setItem("user", JSON.stringify(res.data.user));
+      if (res.data.success) {
+        const userData = res.data.user;
 
-      alert("Login successful ✅");
-      navigate("/");
+        // 🔥 SAFETY CHECK (CRITICAL FOR ROLE SYSTEM)
+        if (!userData?.role) {
+          alert("Login failed: user role missing from backend response");
+          return;
+        }
+
+        // SAVE USER (includes role)
+        localStorage.setItem("user", JSON.stringify(userData));
+
+        alert("Login successful");
+
+        navigate("/");
+      } else {
+        alert(res.data.message);
+      }
 
     } catch (err) {
-      alert(err.response?.data?.message || "Login failed ❌");
+      alert(err.response?.data?.message || "Login failed");
     }
   };
 
   return (
     <div style={styles.page}>
-
-      {/* 🌟 glowing rings */}
-      <div style={styles.glow1}></div>
-      <div style={styles.glow2}></div>
-
-      {/* 🔙 BACK BUTTON (TOP RIGHT AREA NOT CORNER) */}
-      <button
-        style={styles.backBtn}
-        onClick={() => navigate("/")}
-      >
-        ⬅ Home
-      </button>
-
-      {/* CARD */}
       <div style={styles.card}>
-        <h2 style={styles.title}>🍰 Daily Bite Login</h2>
-        <p style={styles.subtitle}>Welcome back</p>
+
+        <h2 style={styles.title}>Login</h2>
 
         <form onSubmit={login}>
+
           <input
             style={styles.input}
+            type="email"
             placeholder="Email"
+            value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
 
@@ -60,18 +63,23 @@ const Signin = () => {
             style={styles.input}
             type="password"
             placeholder="Password"
+            value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          <button style={styles.button}>Sign In</button>
+          <button style={styles.button}>
+            Sign In
+          </button>
+
         </form>
 
-        <p style={styles.linkText}>
-          No account?{" "}
-          <span style={styles.link} onClick={() => navigate("/signup")}>
-            Sign up
-          </span>
+        <p
+          style={styles.link}
+          onClick={() => navigate("/signup")}
+        >
+          Create account
         </p>
+
       </div>
     </div>
   );
@@ -84,78 +92,48 @@ const styles = {
     justifyContent: "center",
     alignItems: "center",
     background: "#0b0b0b",
-    position: "relative",
-    overflow: "hidden",
   },
 
   card: {
-    width: "350px",
-    padding: "25px",
+    width: 350,
+    padding: 25,
     background: "#111",
     border: "1px solid #d4af37",
-    borderRadius: "12px",
+    borderRadius: 10,
     textAlign: "center",
-    zIndex: 2,
-    boxShadow: "0 0 25px rgba(212,175,55,0.25)",
   },
 
-  title: { color: "#d4af37" },
-  subtitle: { color: "#aaa", fontSize: "13px", marginBottom: "15px" },
+  title: {
+    color: "#d4af37",
+    marginBottom: 20,
+  },
 
   input: {
     width: "100%",
-    padding: "10px",
-    marginBottom: "10px",
-    background: "#000",
+    padding: 10,
+    margin: "8px 0",
+    borderRadius: 6,
     border: "1px solid #d4af37",
+    background: "#000",
     color: "#fff",
-    borderRadius: "6px",
+    boxSizing: "border-box",
   },
 
   button: {
     width: "100%",
-    padding: "10px",
+    padding: 10,
     background: "#d4af37",
     border: "none",
-    fontWeight: "bold",
+    marginTop: 10,
     cursor: "pointer",
+    fontWeight: "bold",
+    borderRadius: 6,
   },
 
-  linkText: { marginTop: "10px", color: "#aaa", fontSize: "13px" },
-  link: { color: "#d4af37", cursor: "pointer" },
-
-  backBtn: {
-    position: "absolute",
-    top: "20px",
-    right: "40px",
-    padding: "8px 15px",
-    border: "1px solid #d4af37",
-    background: "transparent",
+  link: {
+    marginTop: 15,
     color: "#d4af37",
     cursor: "pointer",
-    borderRadius: "8px",
-    zIndex: 10,
-    transition: "0.3s",
-  },
-
-  glow1: {
-    position: "absolute",
-    width: "420px",
-    height: "420px",
-    background: "radial-gradient(circle, rgba(212,175,55,0.25), transparent 60%)",
-    filter: "blur(50px)",
-    top: "-120px",
-    left: "-120px",
-  },
-
-  glow2: {
-    position: "absolute",
-    width: "450px",
-    height: "450px",
-    background: "radial-gradient(circle, rgba(255,204,0,0.15), transparent 60%)",
-    filter: "blur(60px)",
-    bottom: "-120px",
-    right: "-150px",
   },
 };
 

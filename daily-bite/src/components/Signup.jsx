@@ -15,66 +15,32 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log("FORM SUBMITTED 🚀");
-
-    // ✅ STRONG VALIDATION
-    if (!username.trim() || !email.trim() || !password.trim() || !phone.trim()) {
-      alert("Please fill all fields");
-      return;
-    }
-
     try {
-      console.log("SENDING REQUEST...");
+      const res = await axios.post(`${BASE_URL}/api/signup`, {
+        customer_name: username,
+        email,
+        password,
+        phone,
+      });
 
-      const res = await axios.post(
-        `${BASE_URL}/api/signup`,
-        {
-          customer_name: username.trim(), // ✅ MUST MATCH BACKEND
-          email: email.trim(),
-          password: password.trim(),
-          phone: phone.trim(),
-        },
-        {
-          headers: {
-            "Content-Type": "application/json", // ✅ IMPORTANT
-          },
-        }
-      );
-
-      console.log("RESPONSE:", res.data);
-
-      alert("Account created ✅");
-      navigate("/signin");
+      if (res.data.success) {
+        alert("Account created successfully");
+        navigate("/signin");
+      } else {
+        alert(res.data.message);
+      }
 
     } catch (err) {
-      console.log("FULL ERROR:", err);
-
-      // ✅ BETTER ERROR HANDLING
-      if (err.response) {
-        alert(err.response.data.message || "Signup failed ❌");
-      } else if (err.request) {
-        alert("Server not responding ❌");
-      } else {
-        alert("Something went wrong ❌");
-      }
+      alert(err.response?.data?.message || "Signup failed");
     }
   };
 
   return (
     <div style={styles.page}>
-      <div style={styles.glow1}></div>
-      <div style={styles.glow2}></div>
-
-      <button style={styles.backBtn} onClick={() => navigate("/")}>
-        ⬅ Home
-      </button>
-
       <div style={styles.card}>
-        <h2 style={styles.title}>🍰 Join Daily Bite</h2>
-        <p style={styles.subtitle}>Create your account</p>
+        <h2 style={styles.title}>Create Account</h2>
 
         <form onSubmit={handleSubmit}>
-
           <input
             style={styles.input}
             placeholder="Username"
@@ -84,7 +50,6 @@ const Signup = () => {
 
           <input
             style={styles.input}
-            type="email" // ✅ small improvement
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -105,25 +70,17 @@ const Signup = () => {
             onChange={(e) => setPhone(e.target.value)}
           />
 
-          {/* ✅ IMPORTANT: type submit */}
-          <button type="submit" style={styles.button}>
-            Sign Up 🚀
-          </button>
-
+          <button style={styles.button}>Sign Up</button>
         </form>
 
-        <p style={styles.linkText}>
-          Already have account?{" "}
-          <span style={styles.link} onClick={() => navigate("/signin")}>
-            Sign in
-          </span>
+        <p style={styles.link} onClick={() => navigate("/signin")}>
+          Already have an account? Login
         </p>
       </div>
     </div>
   );
 };
 
-/* 🔥 KEEPING YOUR STYLES EXACTLY SAME */
 const styles = {
   page: {
     height: "100vh",
@@ -131,79 +88,45 @@ const styles = {
     justifyContent: "center",
     alignItems: "center",
     background: "#0b0b0b",
-    position: "relative",
-    overflow: "hidden",
   },
 
   card: {
-    width: "350px",
-    padding: "25px",
+    width: 350,
+    padding: 25,
     background: "#111",
     border: "1px solid #d4af37",
-    borderRadius: "12px",
+    borderRadius: 10,
     textAlign: "center",
-    zIndex: 2,
-    boxShadow: "0 0 25px rgba(212,175,55,0.25)",
   },
 
-  title: { color: "#d4af37", marginBottom: "5px" },
-  subtitle: { color: "#aaa", fontSize: "13px", marginBottom: "15px" },
+  title: {
+    color: "#d4af37",
+  },
 
   input: {
     width: "100%",
-    padding: "10px",
-    marginBottom: "10px",
-    background: "#000",
+    padding: 10,
+    margin: "8px 0",
+    borderRadius: 6,
     border: "1px solid #d4af37",
+    background: "#000",
     color: "#fff",
-    borderRadius: "6px",
-    outline: "none",
   },
 
   button: {
     width: "100%",
-    padding: "10px",
+    padding: 10,
     background: "#d4af37",
     border: "none",
-    fontWeight: "bold",
+    marginTop: 10,
     cursor: "pointer",
-    borderRadius: "6px",
+    fontWeight: "bold",
   },
 
-  linkText: { marginTop: "10px", color: "#aaa" },
-  link: { color: "#d4af37", cursor: "pointer", fontWeight: "bold" },
-
-  backBtn: {
-    position: "absolute",
-    top: "20px",
-    right: "40px",
-    padding: "8px 15px",
-    border: "1px solid #d4af37",
-    background: "transparent",
+  link: {
+    marginTop: 10,
     color: "#d4af37",
     cursor: "pointer",
-    borderRadius: "8px",
-    zIndex: 10,
-  },
-
-  glow1: {
-    position: "absolute",
-    width: "420px",
-    height: "420px",
-    background: "radial-gradient(circle, rgba(212,175,55,0.25), transparent 60%)",
-    filter: "blur(50px)",
-    top: "-120px",
-    left: "-120px",
-  },
-
-  glow2: {
-    position: "absolute",
-    width: "450px",
-    height: "450px",
-    background: "radial-gradient(circle, rgba(255,204,0,0.15), transparent 60%)",
-    filter: "blur(60px)",
-    bottom: "-120px",
-    right: "-150px",
   },
 };
 

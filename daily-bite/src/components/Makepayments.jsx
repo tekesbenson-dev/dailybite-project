@@ -1,6 +1,7 @@
 import axios from "axios";
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import Confetti from "react-confetti";
 
 const BASE_URL = "https://bensontekes.alwaysdata.net";
 
@@ -9,28 +10,37 @@ const Makepayments = () => {
   const navigate = useNavigate();
 
   const cart = state?.cart;
-  const product = state?.product_name ? state : null;
+  const product = state;
 
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [method, setMethod] = useState("mpesa");
+  const [success, setSuccess] = useState(false);
 
+  // ================= TOTAL =================
   const total =
     cart && Array.isArray(cart) && cart.length > 0
       ? cart.reduce((sum, item) => {
-          const price = Number(item.price || 0);
-          const qty = Number(item.qty || 1);
-          return sum + price * qty;
+          return sum + Number(item.price || 0) * Number(item.qty || 1);
         }, 0)
       : Number(product?.product_cost || 0);
 
-  // =========================
-  // PAYMENT FUNCTION
-  // =========================
+  // ================= FORMAT PHONE =================
+  const formatPhone = (num) => {
+    if (!num) return "";
+    num = num.trim();
+
+    if (num.startsWith("0")) return "254" + num.slice(1);
+    if (num.startsWith("254")) return num;
+
+    return "254" + num;
+  };
+
+  // ================= PAYMENT =================
   const pay = async (e) => {
     e.preventDefault();
 
-    if (method === "mpesa" && (!phone || phone.trim().length < 9)) {
+    if (method === "mpesa" && phone.length < 9) {
       alert("Enter valid phone number");
       return;
     }
@@ -39,30 +49,53 @@ const Makepayments = () => {
       setLoading(true);
 
       const formdata = new FormData();
-      formdata.append("phone", phone);
+      formdata.append("phone", formatPhone(phone));
       formdata.append("amount", total);
-      formdata.append("method", method);
 
-      await axios.post(`${BASE_URL}/api/mpesa_payment`, formdata);
+      const res = await axios.post(
+        `${BASE_URL}/api/mpesa_payment`,
+        formdata
+      );
 
-      alert(`Payment initiated via ${method.toUpperCase()} ✅`);
+      console.log("MPESA RESPONSE:", res.data);
 
-      setPhone("");
+      // ================= FIXED SUCCESS CHECK =================
+      if (res.data?.success === true) {
+        setSuccess(true);
+
+        setTimeout(() => {
+          navigate("/");
+        }, 8000);
+      } else {
+        alert(res.data?.message || "Payment failed");
+        console.log("STK ERROR:", res.data);
+      }
+
     } catch (err) {
-      console.log(err);
-      alert("Payment failed ❌");
+      console.log("PAYMENT ERROR:", err.response?.data || err.message);
+      alert("Payment request failed");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!cart && !product) {
+  // ================= SUCCESS SCREEN =================
+  if (success) {
     return (
-      <div style={styles.empty}>
-        <h2 style={{ color: "#d4af37" }}>No order selected</h2>
-        <button style={styles.btn} onClick={() => navigate("/")}>
-          Go Back Home
-        </button>
+      <div style={styles.successPage}>
+        <Confetti numberOfPieces={500} recycle={false} />
+
+        <div style={styles.successBox}>
+          <h1>Payment Successful 🎉</h1>
+
+          <p>We’ve received your payment.</p>
+          <p>Your order will be delivered shortly 🚚</p>
+          <p>Please check your phone for M-Pesa confirmation 📱</p>
+
+          <p style={{ marginTop: 10, opacity: 0.7 }}>
+            Redirecting you soon...
+          </p>
+        </div>
       </div>
     );
   }
@@ -74,91 +107,60 @@ const Makepayments = () => {
       </button>
 
       <div style={styles.card}>
-        <h2 style={styles.title}>Checkout</h2>
+        <h2 style={styles.title}>Secure Checkout</h2>
 
-        {/* ================= PRODUCT ================= */}
+        {/* PRODUCT */}
         {!cart ? (
-          <>
+          <div style={styles.productBox}>
             <img
               src={`${BASE_URL}/static/images/${product?.product_photo}`}
               style={styles.image}
-              alt=""
+              alt="product"
             />
-            <h3 style={styles.price}>
-              Ksh {Number(product?.product_cost || 0).toFixed(2)}
-            </h3>
-          </>
+            <h3 style={styles.price}>Ksh {total}</h3>
+          </div>
         ) : (
-          <div style={styles.cartBox}>
+          <div>
             {cart.map((item, i) => (
               <div key={i} style={styles.cartItem}>
-                <p>{item.name}</p>
-                <p style={styles.gold}>
-                  Ksh {item.price * item.qty}
-                </p>
+                <span>{item.name}</span>
+                <span>Ksh {item.price * item.qty}</span>
               </div>
             ))}
-
             <h3 style={styles.total}>Total: Ksh {total}</h3>
           </div>
         )}
 
-        {/* ================= PAYMENT OPTIONS ================= */}
-        <h3 style={styles.sectionTitle}>Select Payment Method</h3>
+        {/* PAYMENT METHOD */}
+        <h3 style={styles.sectionTitle}>Payment Method</h3>
 
-        <div style={styles.methodBox}>
+        <div style={styles.methods}>
           <button
             onClick={() => setMethod("mpesa")}
             style={{
               ...styles.methodBtn,
-              border: method === "mpesa" ? "2px solid #d4af37" : "1px solid #333",
+              background: method === "mpesa" ? "#1f7a1f" : "#222",
             }}
           >
             📱 M-Pesa
           </button>
-
-          <button
-            onClick={() => setMethod("cash")}
-            style={{
-              ...styles.methodBtn,
-              border: method === "cash" ? "2px solid #d4af37" : "1px solid #333",
-            }}
-          >
-            💵 Cash
-          </button>
-
-          <button
-            onClick={() => setMethod("card")}
-            style={{
-              ...styles.methodBtn,
-              border: method === "card" ? "2px solid #d4af37" : "1px solid #333",
-            }}
-          >
-            💳 Debit Card
-          </button>
-
-          <button
-            onClick={() => setMethod("delivery")}
-            style={{
-              ...styles.methodBtn,
-              border: method === "delivery" ? "2px solid #d4af37" : "1px solid #333",
-            }}
-          >
-            🚚 Pay on Delivery
-          </button>
         </div>
 
-        {/* ================= PHONE ONLY FOR MPESA ================= */}
+        {/* PHONE */}
         {method === "mpesa" && (
-          <input
-            style={styles.input}
-            placeholder="Enter phone number (2547...)"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
+          <div style={styles.phoneWrapper}>
+            <div style={styles.prefix}>+254</div>
+
+            <input
+              style={styles.phoneInput}
+              placeholder="712345678"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </div>
         )}
 
-        {/* ================= PAY BUTTON ================= */}
+        {/* PAY */}
         <button style={styles.payBtn} onClick={pay} disabled={loading}>
           {loading ? "Processing..." : `Pay Ksh ${total}`}
         </button>
@@ -167,120 +169,122 @@ const Makepayments = () => {
   );
 };
 
-// =========================
-// STYLES
-// =========================
+// ================= STYLES =================
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#0b0b0b",
+    background: "radial-gradient(circle, #0f0f0f, #000)",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    padding: "20px",
+    padding: 20,
+    color: "white",
   },
 
   backBtn: {
     alignSelf: "flex-start",
-    marginBottom: "10px",
+    marginBottom: 15,
     background: "#d4af37",
     border: "none",
-    padding: "8px 12px",
-    borderRadius: "6px",
-    fontWeight: "bold",
+    padding: "8px 14px",
+    borderRadius: 6,
     cursor: "pointer",
+    fontWeight: "bold",
   },
 
   card: {
     width: "100%",
-    maxWidth: "450px",
-    background: "#111",
+    maxWidth: 480,
+    background: "rgba(20,20,20,0.95)",
+    borderRadius: 18,
+    padding: 25,
     border: "1px solid #d4af37",
-    borderRadius: "15px",
-    padding: "20px",
-    textAlign: "center",
   },
 
-  title: { color: "#d4af37" },
+  title: { textAlign: "center", color: "#d4af37" },
+
+  productBox: { textAlign: "center" },
 
   image: {
     width: "100%",
-    height: "200px",
+    height: 220,
     objectFit: "cover",
-    borderRadius: "10px",
+    borderRadius: 12,
   },
 
   price: { color: "#d4af37" },
 
-  sectionTitle: {
-    color: "#d4af37",
-    marginTop: "15px",
+  cartItem: {
+    display: "flex",
+    justifyContent: "space-between",
+    padding: "6px 0",
+    borderBottom: "1px solid #333",
   },
 
-  methodBox: {
+  total: { color: "#d4af37" },
+
+  sectionTitle: { marginTop: 20 },
+
+  methods: {
     display: "grid",
     gridTemplateColumns: "repeat(2, 1fr)",
-    gap: "10px",
-    marginTop: "10px",
+    gap: 10,
   },
 
   methodBtn: {
-    padding: "10px",
-    background: "#000",
-    color: "#fff",
-    borderRadius: "8px",
+    padding: 10,
+    border: "none",
+    borderRadius: 8,
+    color: "white",
     cursor: "pointer",
   },
 
-  input: {
-    width: "100%",
-    padding: "10px",
-    marginTop: "10px",
-    borderRadius: "8px",
+  phoneWrapper: {
+    display: "flex",
+    marginTop: 15,
     border: "1px solid #d4af37",
-    background: "#000",
-    color: "#fff",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+
+  prefix: {
+    padding: 12,
+    background: "#222",
+    color: "#d4af37",
+    fontWeight: "bold",
+  },
+
+  phoneInput: {
+    flex: 1,
+    padding: 12,
+    border: "none",
+    outline: "none",
+    background: "transparent",
+    color: "white",
   },
 
   payBtn: {
     width: "100%",
-    marginTop: "15px",
-    padding: "12px",
+    marginTop: 20,
+    padding: 12,
     background: "#d4af37",
     border: "none",
+    borderRadius: 10,
     fontWeight: "bold",
-    borderRadius: "8px",
     cursor: "pointer",
   },
 
-  cartBox: { textAlign: "left" },
-
-  cartItem: {
+  successPage: {
+    height: "100vh",
+    background: "#000",
     display: "flex",
-    justifyContent: "space-between",
-    borderBottom: "1px solid #333",
-    padding: "5px 0",
-  },
-
-  gold: { color: "#d4af37" },
-
-  total: { color: "#d4af37", marginTop: "10px" },
-
-  btn: {
-    padding: "10px 15px",
-    background: "#d4af37",
-    border: "none",
-    cursor: "pointer",
-    marginTop: "10px",
-  },
-
-  empty: {
-    minHeight: "100vh",
-    background: "#0b0b0b",
-    display: "flex",
-    flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  successBox: {
+    textAlign: "center",
+    color: "white",
   },
 };
 

@@ -1,69 +1,91 @@
-import './App.css';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import "bootstrap/dist/css/bootstrap.min.css";
+import "./App.css";
+import React, { useEffect, useState } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate
+} from "react-router-dom";
 
-// =========================
-// COMPONENTS
-// =========================
-import Navbar from './components/Header';
-import Footer from './components/Footer';
+import Header from "./components/Header";
+import Footer from "./components/Footer";
 
-import Getproducts from './components/Getproducts';
-import Addproducts from './components/Addproducts';
-import Signup from './components/Signup';
-import Signin from './components/Signin';
-import Makepayments from './components/Makepayments';
-import Adminlogin from './components/Adminlogin';
-import AdminDashboard from './components/AdminDashboard'; // ✅ ADDED
-import Notfound from './components/Notfound';
+import Getproducts from "./components/Getproducts";
+import Addproducts from "./components/Addproducts";
+import Signup from "./components/Signup";
+import Signin from "./components/Signin";
+import Makepayments from "./components/Makepayments";
+import AdminDashboard from "./components/AdminDashboard";
+import Notfound from "./components/Notfound";
 
 function App() {
+
+  const [user, setUser] = useState(null);
+
+  // =========================
+  // CLEAN USER SYNC (NO INTERVAL)
+  // =========================
+  useEffect(() => {
+
+    const loadUser = () => {
+      const storedUser = localStorage.getItem("user");
+      setUser(storedUser ? JSON.parse(storedUser) : null);
+    };
+
+    loadUser();
+
+    window.addEventListener("storage", loadUser);
+
+    return () => {
+      window.removeEventListener("storage", loadUser);
+    };
+
+  }, []);
+
   return (
     <Router>
 
-      {/* GLOBAL NAVBAR */}
-      <Navbar />
+      {/* 🔥 PASS USER TO HEADER (IMPORTANT FIX) */}
+      <Header user={user} />
 
-      {/* ROUTES */}
       <Routes>
 
-        {/* =========================
-            PUBLIC PAGES
-        ========================= */}
         <Route path="/" element={<Getproducts />} />
-        <Route path="/getproducts" element={<Getproducts />} />
 
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/signin" element={<Signin />} />
+        <Route
+          path="/signin"
+          element={user ? <Navigate to="/" replace /> : <Signin />}
+        />
 
-        {/* =========================
-            ADMIN AUTH
-        ========================= */}
-        <Route path="/adminlogin" element={<Adminlogin />} />
+        <Route
+          path="/signup"
+          element={user ? <Navigate to="/" replace /> : <Signup />}
+        />
 
-        {/* =========================
-            ADMIN DASHBOARD (NEW 🔥)
-        ========================= */}
-        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        <Route
+          path="/admin-dashboard"
+          element={
+            user?.role === "admin"
+              ? <AdminDashboard />
+              : <Navigate to="/signin" replace />
+          }
+        />
 
-        {/* =========================
-            PRODUCT MANAGEMENT
-        ========================= */}
-        <Route path="/addproducts" element={<Addproducts />} />
+        <Route
+          path="/addproducts"
+          element={
+            user?.role === "admin"
+              ? <Addproducts />
+              : <Navigate to="/signin" replace />
+          }
+        />
 
-        {/* =========================
-            PAYMENTS
-        ========================= */}
         <Route path="/makepayment" element={<Makepayments />} />
 
-        {/* =========================
-            404
-        ========================= */}
         <Route path="*" element={<Notfound />} />
 
       </Routes>
 
-      {/* GLOBAL FOOTER */}
       <Footer />
 
     </Router>

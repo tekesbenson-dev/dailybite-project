@@ -5,13 +5,14 @@ import { useNavigate } from "react-router-dom";
 const BASE_URL = "https://bensontekes.alwaysdata.net";
 
 const AdminDashboard = () => {
+
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
-  const adminData = JSON.parse(localStorage.getItem("admin"));
+  const adminData = JSON.parse(localStorage.getItem("user"));
   const token = adminData?.token;
 
   // =========================
@@ -19,13 +20,10 @@ const AdminDashboard = () => {
   // =========================
   const fetchProducts = useCallback(async () => {
     try {
-      setLoading(true);
       const res = await axios.get(`${BASE_URL}/api/get_products`);
-      setProducts(res.data);
+      setProducts(res.data || []);
     } catch (err) {
       console.log(err);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -37,28 +35,26 @@ const AdminDashboard = () => {
       const res = await axios.get(`${BASE_URL}/api/orders`);
       setOrders(res.data || []);
     } catch (err) {
-      console.log("Orders endpoint missing or error");
+      console.log(err);
     }
   }, []);
 
   // =========================
-  // FETCH ALL
-  // =========================
-  const fetchAll = useCallback(async () => {
-    await Promise.all([fetchProducts(), fetchOrders()]);
-  }, [fetchProducts, fetchOrders]);
-
-  // =========================
-  // AUTH CHECK
+  // LOAD EVERYTHING ON ENTER
   // =========================
   useEffect(() => {
+
     if (!token) {
-      navigate("/adminlogin");
+      navigate("/signin");
       return;
     }
 
-    fetchAll();
-  }, [token, navigate, fetchAll]);
+    setLoading(true);
+
+    Promise.all([fetchProducts(), fetchOrders()])
+      .finally(() => setLoading(false));
+
+  }, [token, navigate, fetchProducts, fetchOrders]);
 
   // =========================
   // DELETE PRODUCT
@@ -66,26 +62,17 @@ const AdminDashboard = () => {
   const deleteProduct = async (id) => {
     if (!window.confirm("Delete this product?")) return;
 
-    try {
-      await axios.post(
-        `${BASE_URL}/api/delete_product`,
-        { id },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+    await axios.post(
+      `${BASE_URL}/api/delete_product`,
+      { id },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      alert("Deleted ✅");
-      fetchProducts();
-    } catch (err) {
-      console.log(err);
-    }
+    fetchProducts();
   };
 
   // =========================
-  // EDIT PRODUCT (TEMP)
+  // EDIT PRODUCT
   // =========================
   const editProduct = (product) => {
     const newName = prompt("Edit name", product.product_name);
@@ -101,30 +88,28 @@ const AdminDashboard = () => {
         product_cost: newPrice,
         product_description: product.product_description,
       },
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    ).then(() => {
-      alert("Updated ✅");
-      fetchProducts();
-    });
+      { headers: { Authorization: `Bearer ${token}` } }
+    ).then(fetchProducts);
   };
 
   // =========================
   // LOGOUT
   // =========================
   const logout = () => {
-    localStorage.removeItem("admin");
-    navigate("/adminlogin");
+    localStorage.removeItem("user");
+    navigate("/signin", { replace: true });
   };
 
   // =========================
-  // REVENUE
+  // ANALYTICS
   // =========================
   const totalRevenue = orders.reduce(
     (sum, o) => sum + Number(o.total_amount || 0),
     0
   );
+
+  const pendingOrders = orders.filter(o => o.status === "pending");
+  const completedOrders = orders.filter(o => o.status === "completed");
 
   return (
     <div style={styles.page}>
@@ -139,75 +124,51 @@ const AdminDashboard = () => {
         </div>
 
         <div style={styles.actions}>
-          <button style={styles.refreshBtn} onClick={fetchAll}>
+          <button style={styles.btn} onClick={() => { fetchProducts(); fetchOrders(); }}>
             🔄 Refresh
           </button>
 
-          <button
-            style={styles.addBtn}
-            onClick={() => navigate("/addproducts")}
-          >
+          <button style={styles.btnGold} onClick={() => navigate("/addproducts")}>
             ➕ Add Product
           </button>
 
-          <button style={styles.logoutBtn} onClick={logout}>
+          <button style={styles.btnRed} onClick={logout}>
             🚪 Logout
           </button>
         </div>
       </div>
 
+      {/* LOADING */}
+      {loading && <p style={{ color: "#d4af37" }}>Loading dashboard...</p>}
+
       {/* PRODUCTS */}
       <h3 style={{ color: "#d4af37" }}>Products</h3>
-
-      {loading && <p>Loading...</p>}
 
       <div style={styles.grid}>
         {products.map((p) => (
           <div key={p.id} style={styles.card}>
-
             <img
               src={`${BASE_URL}/static/images/${p.product_photo}`}
-              alt={p.product_name || "product"}
               style={styles.image}
+              alt=""
             />
 
             <h3>{p.product_name}</h3>
             <p>Ksh {p.product_cost}</p>
 
             <div style={{ display: "flex", gap: "5px" }}>
-              <button
-                style={styles.editBtn}
-                onClick={() => editProduct(p)}
-              >
-                ✏️ Edit
-              </button>
-
-              <button
-                style={styles.deleteBtn}
-                onClick={() => deleteProduct(p.id)}
-              >
-                🗑️ Delete
-              </button>
+              <button style={styles.editBtn} onClick={() => editProduct(p)}>✏️</button>
+              <button style={styles.deleteBtn} onClick={() => deleteProduct(p.id)}>🗑️</button>
             </div>
           </div>
         ))}
       </div>
 
       {/* ORDERS */}
-      <h3 style={{ color: "#d4af37", marginTop: "30px" }}>Orders</h3>
+      <h3 style={{ color: "#d4af37", marginTop: 30 }}>Orders</h3>
 
-      <div style={styles.orders}>
-        {orders.length === 0 ? (
-          <p>No orders yet</p>
-        ) : (
-          orders.map((o, i) => (
-            <div key={i} style={styles.orderCard}>
-              <p>👤 {o.customer_name}</p>
-              <p>💰 Ksh {o.total_amount}</p>
-            </div>
-          ))
-        )}
-      </div>
+      <p>⏳ Pending: {pendingOrders.length}</p>
+      <p>✅ Completed: {completedOrders.length}</p>
 
     </div>
   );
@@ -217,11 +178,12 @@ const AdminDashboard = () => {
 // STYLES
 // =========================
 const styles = {
+
   page: {
-    minHeight: "100vh",
     background: "#0b0b0b",
-    color: "#fff",
+    minHeight: "100vh",
     padding: "20px",
+    color: "#fff",
   },
 
   header: {
@@ -236,30 +198,32 @@ const styles = {
     gap: "10px",
   },
 
-  addBtn: {
-    background: "#d4af37",
-    border: "none",
+  btn: {
     padding: "10px",
-    fontWeight: "bold",
-  },
-
-  refreshBtn: {
     background: "#333",
     color: "#fff",
     border: "1px solid #d4af37",
-    padding: "10px",
+    cursor: "pointer",
   },
 
-  logoutBtn: {
+  btnGold: {
+    padding: "10px",
+    background: "#d4af37",
+    border: "none",
+    cursor: "pointer",
+  },
+
+  btnRed: {
+    padding: "10px",
     background: "red",
     color: "#fff",
     border: "none",
-    padding: "10px",
+    cursor: "pointer",
   },
 
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(5, 1fr)",
+    gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
     gap: "15px",
   },
 
@@ -278,30 +242,17 @@ const styles = {
   },
 
   editBtn: {
-    flex: 1,
     background: "blue",
     color: "#fff",
     border: "none",
-    padding: "6px",
+    cursor: "pointer",
   },
 
   deleteBtn: {
-    flex: 1,
     background: "red",
     color: "#fff",
     border: "none",
-    padding: "6px",
-  },
-
-  orders: {
-    marginTop: "10px",
-  },
-
-  orderCard: {
-    background: "#111",
-    padding: "10px",
-    marginBottom: "8px",
-    borderLeft: "3px solid #d4af37",
+    cursor: "pointer",
   },
 };
 

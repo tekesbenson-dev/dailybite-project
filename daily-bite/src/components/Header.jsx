@@ -1,31 +1,70 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 const Header = () => {
+
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [hovered, setHovered] = useState("");
 
+  // =========================
+  // LOAD USER (SYNC FIXED)
+  // =========================
   useEffect(() => {
-    const u = localStorage.getItem("user");
-    setUser(u ? JSON.parse(u) : null);
+
+    const loadUser = () => {
+      const stored = localStorage.getItem("user");
+      setUser(stored ? JSON.parse(stored) : null);
+    };
+
+    loadUser();
+
+    // instant sync between pages
+    window.addEventListener("storage", loadUser);
+
+    return () => window.removeEventListener("storage", loadUser);
+
   }, []);
 
+  // =========================
+  // LOGOUT (CLEAN FIX)
+  // =========================
   const logout = () => {
     localStorage.removeItem("user");
     setUser(null);
-    navigate("/signin");
+
+    navigate("/signin", { replace: true });
+  };
+
+  // =========================
+  // HOVER EFFECTS
+  // =========================
+  const hoverBase = (e) => {
+    e.target.style.transform = "translateY(-4px) scale(1.05)";
+    e.target.style.boxShadow = "0 0 18px #d4af37";
+  };
+
+  const hoverOutBase = (e) => {
+    e.target.style.transform = "translateY(0px) scale(1)";
+    e.target.style.boxShadow = "none";
+  };
+
+  const hoverGold = (e) => {
+    e.target.style.transform = "translateY(-4px) scale(1.05)";
+    e.target.style.boxShadow = "0 0 25px #ffd700";
+  };
+
+  const hoverGoldOut = (e) => {
+    e.target.style.transform = "translateY(0px) scale(1)";
+    e.target.style.boxShadow = "none";
   };
 
   return (
     <header style={styles.wrapper}>
 
-      {/* TOP BAR */}
       <div style={styles.topBar}>
         🍰 Fresh Bakery • Nairobi Delivery • Order Anytime
       </div>
 
-      {/* BRAND */}
       <div style={styles.center}>
         <h1 style={styles.brand}>Daily Bite</h1>
         <p style={styles.tagline}>
@@ -33,35 +72,39 @@ const Header = () => {
         </p>
       </div>
 
-      {/* NAV */}
       <div style={styles.nav}>
 
-        {/* HOME */}
+        {/* HOME BUTTON (FIXED + HOVER ADDED) */}
         <Link
           to="/"
-          style={{
-            ...styles.linkBtn,
-            ...(hovered === "home" ? styles.hover : {}),
-          }}
-          onMouseEnter={() => setHovered("home")}
-          onMouseLeave={() => setHovered("")}
+          style={styles.linkBtn}
+          onMouseEnter={hoverBase}
+          onMouseLeave={hoverOutBase}
         >
           Home
         </Link>
 
         {/* ADMIN */}
         {user?.role === "admin" && (
-          <Link
-            to="/addproducts"
-            style={{
-              ...styles.goldBtn,
-              ...(hovered === "add" ? styles.hoverGold : {}),
-            }}
-            onMouseEnter={() => setHovered("add")}
-            onMouseLeave={() => setHovered("")}
-          >
-            Add Product
-          </Link>
+          <>
+            <Link
+              to="/admin-dashboard"
+              style={styles.goldBtn}
+              onMouseEnter={hoverGold}
+              onMouseLeave={hoverGoldOut}
+            >
+              Admin Dashboard
+            </Link>
+
+            <Link
+              to="/addproducts"
+              style={styles.goldBtn}
+              onMouseEnter={hoverGold}
+              onMouseLeave={hoverGoldOut}
+            >
+              Add Product
+            </Link>
+          </>
         )}
 
         {/* AUTH */}
@@ -69,24 +112,18 @@ const Header = () => {
           <>
             <Link
               to="/signin"
-              style={{
-                ...styles.linkBtn,
-                ...(hovered === "signin" ? styles.hover : {}),
-              }}
-              onMouseEnter={() => setHovered("signin")}
-              onMouseLeave={() => setHovered("")}
+              style={styles.linkBtn}
+              onMouseEnter={hoverBase}
+              onMouseLeave={hoverOutBase}
             >
               Sign In
             </Link>
 
             <Link
               to="/signup"
-              style={{
-                ...styles.linkBtn,
-                ...(hovered === "signup" ? styles.hover : {}),
-              }}
-              onMouseEnter={() => setHovered("signup")}
-              onMouseLeave={() => setHovered("")}
+              style={styles.linkBtn}
+              onMouseEnter={hoverBase}
+              onMouseLeave={hoverOutBase}
             >
               Sign Up
             </Link>
@@ -94,29 +131,31 @@ const Header = () => {
         ) : (
           <button
             onClick={logout}
-            style={{
-              ...styles.dangerBtn,
-              ...(hovered === "logout" ? styles.hoverDanger : {}),
-            }}
-            onMouseEnter={() => setHovered("logout")}
-            onMouseLeave={() => setHovered("")}
+            style={styles.dangerBtn}
+            onMouseEnter={hoverBase}
+            onMouseLeave={hoverOutBase}
           >
             Logout
           </button>
         )}
 
       </div>
-
     </header>
   );
 };
 
+// =========================
+// STYLES (UNCHANGED CORE LOOK)
+// =========================
 const styles = {
+
   wrapper: {
-    background: "#0b0b0b",
+    background: "linear-gradient(to bottom, #050505, #111)",
     color: "#fff",
     borderBottom: "2px solid #d4af37",
     textAlign: "center",
+    position: "relative",
+    overflow: "hidden",
   },
 
   topBar: {
@@ -124,7 +163,6 @@ const styles = {
     color: "#d4af37",
     fontSize: "14px",
     padding: "8px",
-    letterSpacing: "1px",
   },
 
   center: {
@@ -140,8 +178,7 @@ const styles = {
 
   tagline: {
     fontSize: "16px",
-    fontFamily: "'Lora', serif",
-    color: "#ccc",
+    color: "#ddd",
     marginTop: "10px",
   },
 
@@ -149,62 +186,39 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     gap: "20px",
-    paddingBottom: "18px",
+    paddingBottom: "20px",
     flexWrap: "wrap",
   },
 
-  // =========================
-  // BUTTONS
-  // =========================
   linkBtn: {
-    padding: "10px 18px",
+    padding: "12px 20px",
     border: "1px solid #d4af37",
     color: "#d4af37",
     textDecoration: "none",
-    fontFamily: "'Instrument Serif', serif",
-    borderRadius: "6px",
+    borderRadius: "8px",
     background: "#111",
-    transition: "0.3s",
+    fontWeight: "bold",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
   },
 
   goldBtn: {
-    padding: "10px 18px",
+    padding: "12px 20px",
     background: "linear-gradient(145deg, #d4af37, #ffcc70)",
     color: "#000",
+    borderRadius: "8px",
     fontWeight: "bold",
     textDecoration: "none",
-    borderRadius: "6px",
-    border: "none",
-    transition: "0.3s",
+    transition: "all 0.2s ease",
   },
 
   dangerBtn: {
-    padding: "10px 18px",
-    background: "linear-gradient(145deg, #000, #220000)",
+    padding: "12px 20px",
+    background: "#220000",
     color: "#d4af37",
     border: "1px solid #d4af37",
-    borderRadius: "6px",
+    borderRadius: "8px",
     cursor: "pointer",
-    fontWeight: "bold",
-    transition: "0.3s",
-  },
-
-  // =========================
-  // HOVER EFFECTS
-  // =========================
-  hover: {
-    transform: "scale(1.08)",
-    boxShadow: "0 0 12px rgba(212,175,55,0.7)",
-  },
-
-  hoverGold: {
-    transform: "scale(1.08)",
-    boxShadow: "0 0 18px rgba(255,204,112,0.9)",
-  },
-
-  hoverDanger: {
-    transform: "scale(1.08)",
-    boxShadow: "0 0 15px rgba(255,0,0,0.6)",
   },
 };
 
